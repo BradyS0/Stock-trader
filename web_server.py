@@ -127,8 +127,8 @@ def add_user(username, password):
         chars.append(random.choice(ALPHABET))
     salt="".join(chars)
     h = hashlib.sha256()
-    h.update(password)
-    h.update(salt)
+    h.update(password.encode())
+    h.update(salt.encode())
     passhash = h.hexdigest()
     insert='INSERT INTO Users (username,salt,passhash,money) VALUES (?,?,?,?)'
     
@@ -140,17 +140,20 @@ def updateDatabase(update, values):
     cursor = conn.cursor()
     try:
         cursor.execute(update,values)
+        conn.commit()
     except KeyError:
-        conn.rollback()
         worked=False
+    except sqlite3.Error as e:
+        print(f"Error: {e}")
     finally:
-        conn.close()
         cursor.close()
+        conn.close()
         return worked
 
 def check_password(username,password):
-    results = queryDatabase('SELECT passhash, salt FROM Users WHERE username = ?', (username))
-
+    print(username,password)
+    results = queryDatabase('SELECT passhash, salt FROM Users WHERE username = ?', (username,))
+    print(results)
     if results==None:
         return 400
     elif results==[]:
@@ -159,8 +162,8 @@ def check_password(username,password):
         stored_passhash = results[0][0]
         stored_salt = results[0][1]
         h = hashlib.sha256()
-        h.update(password)
-        h.update(stored_salt)
+        h.update(password.encode())
+        h.update(stored_salt.encode())
         new_hash = h.hexdigest()
         if new_hash == stored_passhash:
             return 200
@@ -168,7 +171,7 @@ def check_password(username,password):
             return 401
         
 def check_user(username):
-    results = queryDatabase("SELECT userID FROM Users WHERE username = ?",(username))
+    results = queryDatabase("SELECT userID FROM Users WHERE username = ?",(username,))
     if results == None:
         return None
     elif results == []:
@@ -192,6 +195,7 @@ def queryDatabase(query, values):
     finally:
         cursor.close()
         conn.close()
+        print("received message from database")
         return rows
 
 def make_api_response(request_headers, request_body, client_connection):
@@ -218,7 +222,6 @@ def make_api_response(request_headers, request_body, client_connection):
         data = json.loads(request_body)
         print("DATA", data)
     if request_path=="/api/login" and request_type == "POST":
-        print(username,password)
         CODE = check_password(data['username'],data['password'])
         print(CODE)
         if CODE ==200:
@@ -232,7 +235,7 @@ def make_api_response(request_headers, request_body, client_connection):
         response_body=''
 
     elif request_path=="/api/create-user" and request_type == "POST":
-        user_check = check_user(username)
+        user_check = check_user(data['username'])
         if user_check == None:
             response_header = "HTTP/1.1 400 "+response_codes[400]+"\r\n\r\n"
         elif user_check == True:

@@ -99,7 +99,7 @@ function showCreateUserContent(){
     loginSubmit.setAttribute("id", "createSubmit");
     loginSubmit.setAttribute("class","submit-button");
     loginSubmit.setAttribute("onclick", "createUser()");
-    loginSubmit.innerHTML = "Login";
+    loginSubmit.innerHTML = "Create Account";
 
     var createUser = document.createElement("button");
     createUser.setAttribute("class","submit-button");
