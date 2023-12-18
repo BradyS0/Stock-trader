@@ -1,0 +1,56 @@
+body {
+    font-family:'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif
+}
+#toolBar {
+    position: absolute;
+    top: 0;
+    right: 0;
+    padding-top: 30px;
+    padding-right: 10px;
+}
+#makePost{
+    padding-bottom: 30px;
+}
+#pageTitle {
+    text-align: center;
+}
+
+.parent-container {
+    height: 400px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.login-container {
+    display: flex;
+    width: 30%;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    /* height: 100vh; */
+    /* background-color: #3498db; Blue background color */
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+}
+
+.input-box {
+    width: 90%;
+    padding: 10px;
+    margin-top: 10px;
+    /* border: none; */
+    border-radius: 5px;
+    font-size: 14px;
+}
+.submit-button {
+    width: 90%;
+    padding: 10px;
+    margin-top: 10px;
+    border: none;
+    border-radius: 5px;
+    background-color: #2980b9; /*Darker blue for the button*/
+    color: #fff; /* White text color */
+    font-size: 16px;
+    cursor: pointer;
+}
