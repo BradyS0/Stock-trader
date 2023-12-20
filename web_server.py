@@ -225,13 +225,13 @@ def make_api_response(request_headers, request_body, client_connection):
         CODE = check_password(data['username'],data['password'])
         print(CODE)
         if CODE ==200:
-             response_header = "HTTP/1.1 200 "+response_codes[200]+"\r\nSet-Cookie: username="+data["username"]+"; Path=/; Expires=Wed, 09 Nov 2026 10:18:14 GMT\r\n\r\n"
+             response_header = "HTTP/1.1 200 "+response_codes[200]+"\r\nSet-Cookie: session-token="+data["username"]+"; Path=/; Expires=Wed, 09 Nov 2026 10:18:14 GMT\r\n\r\n"
         else:
             response_header = f"HTTP/1.1 {CODE} "+response_codes[CODE]+"\r\n\r\n"
         response_body=''
         print("response header\n",response_header)
     elif request_path=="/api/login" and request_type == "DELETE":
-        response_header = "HTTP/1.1 200 "+response_codes[200]+"\r\nSet-Cookie: username="+username+"; Path=/; Expires=Wed, 09 Nov 2020 10:18:14 GMT\r\n\r\n"
+        response_header = "HTTP/1.1 200 "+response_codes[200]+"\r\nSet-Cookie: session-token="+username+"; Path=/; Expires=Wed, 09 Nov 2020 10:18:14 GMT\r\n\r\n"
         response_body=''
 
     elif request_path=="/api/create-user" and request_type == "POST":
@@ -240,7 +240,7 @@ def make_api_response(request_headers, request_body, client_connection):
             response_header = "HTTP/1.1 400 "+response_codes[400]+"\r\n\r\n"
         elif user_check == True:
             if add_user(data['username'],data['password']):
-                response_header = "HTTP/1.1 200 "+response_codes[200]+"\r\nSet-Cookie: username="+data["username"]+"; Path=/; Expires=Wed, 09 Nov 2026 10:18:14 GMT\r\n\r\n"
+                response_header = "HTTP/1.1 200 "+response_codes[200]+"\r\nSet-Cookie: session-token="+data["username"]+"; Path=/; Expires=Wed, 09 Nov 2026 10:18:14 GMT\r\n\r\n"
             else:
                 response_header = "HTTP/1.1 400 "+response_codes[400]+"\r\n\r\n"
         else:
