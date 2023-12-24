@@ -1,12 +1,9 @@
 import socket
-import threading
 import os
 import datetime
 import pytz
 import json
-import random
-import hashlib
-import sqlite3
+import database_functions as db
 
 currency_conversion={
     'EUR':1.47,
@@ -96,108 +93,6 @@ def get_path_and_file(requested_path):
 
     return path, file
 
-def make_http_reponse(request_headers):
-    #added this clause in case request is not formal http
-    if len(request_headers[0].split()) >1:
-        path, file = get_path_and_file(request_headers[0].split()[1])
-    else:
-        path, file = get_path_and_file(request_headers[0])
-
-    #checks if file requested exists, if yes, parse and make response
-    if os.path.exists(path) and file != '':
-        content_type, body, CODE = getContent(path, file)
-        modifiedTimestamp = os.path.getmtime(path)
-        modifiedTime = datetime.datetime.fromtimestamp(modifiedTimestamp, tz=pytz.timezone("America/Winnipeg"))
-        modifiedTime = modifiedTime.strftime(lastUpdatedPattern)
-    else:#send 404 error and html to show on web browser
-        body = "<html><body><h1>404 Error</h1><p>File not found</p></body></html>"
-        content_type = "text/html"
-        CODE=404
-        modifiedTime="N/A"
-
-    #puts values in header skeleton
-    response_header=http_head.format(str(CODE)+" "+response_codes[CODE], len(body),content_type, modifiedTime, "")
-
-    return response_header, body
-
-def add_user(username, password):
-    ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    chars=[]
-    for i in range(16):
-        chars.append(random.choice(ALPHABET))
-    salt="".join(chars)
-    h = hashlib.sha256()
-    h.update(password.encode())
-    h.update(salt.encode())
-    passhash = h.hexdigest()
-    insert='INSERT INTO Users (username,salt,passhash,money) VALUES (?,?,?,?)'
-    
-    return updateDatabase(insert,(username,salt,passhash,500))
-    
-def updateDatabase(update, values):
-    worked=True
-    conn = sqlite3.connect('stock_website.db')
-    cursor = conn.cursor()
-    try:
-        cursor.execute(update,values)
-        conn.commit()
-    except KeyError:
-        worked=False
-    except sqlite3.Error as e:
-        print(f"Error: {e}")
-    finally:
-        cursor.close()
-        conn.close()
-        return worked
-
-def check_password(username,password):
-    print(username,password)
-    results = queryDatabase('SELECT passhash, salt FROM Users WHERE username = ?', (username,))
-    print(results)
-    if results==None:
-        return 400
-    elif results==[]:
-        return 404
-    else:
-        stored_passhash = results[0][0]
-        stored_salt = results[0][1]
-        h = hashlib.sha256()
-        h.update(password.encode())
-        h.update(stored_salt.encode())
-        new_hash = h.hexdigest()
-        if new_hash == stored_passhash:
-            return 200
-        else:
-            return 401
-        
-def check_user(username):
-    results = queryDatabase("SELECT userID FROM Users WHERE username = ?",(username,))
-    if results == None:
-        return None
-    elif results == []:
-        return True
-    else:
-        return False
-
-def queryDatabase(query, values):
-    conn = sqlite3.connect('stock_website.db')
-    cursor = conn.cursor()
-    try:
-        cursor.execute(query, values)
-        rows = cursor.fetchall()
-
-        # Process the results
-        for row in rows:
-            print(row)
-    except sqlite3.Error as e:
-        print(f"Error executing SELECT query: {e}")
-        rows=None
-    finally:
-        cursor.close()
-        conn.close()
-        print("received message from database")
-        return rows
-
 def make_api_response(request_headers, request_body, client_connection):
     request_type = request_headers[0].split()[0]
     request_path = request_headers[0].split()[1]
@@ -222,7 +117,7 @@ def make_api_response(request_headers, request_body, client_connection):
         data = json.loads(request_body)
         print("DATA", data)
     if request_path=="/api/login" and request_type == "POST":
-        CODE = check_password(data['username'],data['password'])
+        CODE = db.check_password(data['username'],data['password'])
         print(CODE)
         if CODE ==200:
              response_header = "HTTP/1.1 200 "+response_codes[200]+"\r\nSet-Cookie: session-token="+data["username"]+"; Path=/; Expires=Wed, 09 Nov 2026 10:18:14 GMT\r\n\r\n"
@@ -235,11 +130,12 @@ def make_api_response(request_headers, request_body, client_connection):
         response_body=''
 
     elif request_path=="/api/create-user" and request_type == "POST":
-        user_check = check_user(data['username'])
+        user_check = db.check_user(data['username'])
         if user_check == None:
             response_header = "HTTP/1.1 400 "+response_codes[400]+"\r\n\r\n"
         elif user_check == True:
-            if add_user(data['username'],data['password']):
+            worked2 = db.add_user(data['username'],data['password'])
+            if worked2:
                 response_header = "HTTP/1.1 200 "+response_codes[200]+"\r\nSet-Cookie: session-token="+data["username"]+"; Path=/; Expires=Wed, 09 Nov 2026 10:18:14 GMT\r\n\r\n"
             else:
                 response_header = "HTTP/1.1 400 "+response_codes[400]+"\r\n\r\n"
@@ -247,7 +143,13 @@ def make_api_response(request_headers, request_body, client_connection):
             response_header = "HTTP/1.1 409 "+response_codes[409]+"\r\n\r\n"
         response_body=''
     else:
-        print('a')
+        if request_type == "GET" and request_path == "/api/ownedStocks":
+            response_header = "HTTP/1.1 200 "+response_codes[200]+"\r\n\r\n"
+            response_body = db.get_owned_stocks(username)
+            print("something")
+        if request_body == "GET" and request_path == "/api/buyStocks":
+            response_header = "HTTP/1.1 200 "+response_codes[200]+"\r\n\r\n"
+            response_body = json.dumps(db.search_stocks(data["input"]))
         # if request_type == "POST" and request_path=="/api/tweet":
         #     newKey = str(uuid.uuid4().hex)
         #     while newKey[0].isdigit():
@@ -284,9 +186,7 @@ def make_http_reponse(request_headers):
     #checks if file requested exists, if yes, parse and make response
     if os.path.exists(path) and file != '':
         content_type, body, CODE = getContent(path, file)
-        modifiedTimestamp = os.path.getmtime(path)
-        modifiedTime = datetime.datetime.fromtimestamp(modifiedTimestamp, tz=pytz.timezone("America/Winnipeg"))
-        modifiedTime = modifiedTime.strftime(lastUpdatedPattern)
+        modifiedTime = get_last_modified(path)
     else:#send 404 error and html to show on web browser
         body = "<html><body><h1>404 Error</h1><p>File not found</p></body></html>"
         content_type = "text/html"

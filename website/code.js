@@ -1,3 +1,12 @@
+var LOGIN = "login"
+var OWNED = "owned"
+var BUY = "buy"
+var OVERVIEW = "overview"
+var state = LOGIN
+var searched_list = []
+var stocksShown=0
+var showAtATime =5
+
 function setup(){
 
     if(document.cookie.indexOf('session-token=')==-1){
@@ -11,6 +20,7 @@ function showLoginContent(){
     var login_parent_container = document.getElementById("login-parent-container");
     login_parent_container.style.display = "flex";
     removeCreateUserContent()
+    removeError()
     var usernameInput = document.createElement("input");
     usernameInput.setAttribute("type", "text");
     usernameInput.setAttribute("id", "usernameInput");
@@ -26,27 +36,31 @@ function showLoginContent(){
 
     var loginSubmit = document.createElement("button");
     loginSubmit.setAttribute("id", "loginSubmit");
-    loginSubmit.setAttribute("class","submit-button");
+    loginSubmit.setAttribute("class","button submit-button");
     loginSubmit.setAttribute("onclick", "submitLogin()");
     loginSubmit.innerHTML = "Login";
 
     var createUser = document.createElement("button");
-    createUser.setAttribute("class","submit-button");
+    createUser.setAttribute("class","button submit-button");
     createUser.setAttribute("id", "createUserScreen")
     createUser.setAttribute("onclick", "showCreateUserContent()");
     createUser.innerHTML = "Create Account"
+
+    var errorDiv = document.createElement("div")
+    errorDiv.setAttribute("id","login-error")
 
     var lineBreak = document.createElement("br");
     lineBreak.setAttribute("id", "loginLinebreak")
 
     var inputDiv = document.getElementById("login");
+    inputDiv.appendChild(errorDiv)
+    inputDiv.appendChild(lineBreak)
     inputDiv.appendChild(usernameInput);
     inputDiv.appendChild(lineBreak);
     inputDiv.appendChild(passwordInput);
     inputDiv.appendChild(lineBreak);
     inputDiv.appendChild(loginSubmit);
     inputDiv.appendChild(createUser)
-
 }
 
 function removeLoginContent(){
@@ -60,11 +74,17 @@ function removeLoginContent(){
         document.getElementById("createUserScreen").remove();
     if(document.getElementById("loginLinebreak")!=null)
         document.getElementById("loginLinebreak").remove()
-    document.getElementById("login-error").textContent=""
+    if(document.getElementById("login-error")!=null)
+        document.getElementById("login-error").remove()
+    //document.getElementById("login-error").textContent=""
 }
 
 function showCreateUserContent(){
     removeLoginContent()
+
+    var errorDiv = document.createElement("div")
+    errorDiv.setAttribute("id","login-error")
+
     var usernameInput = document.createElement("input");
     usernameInput.setAttribute("type", "text");
     usernameInput.setAttribute("id", "usernameInput");
@@ -86,20 +106,24 @@ function showCreateUserContent(){
 
     var loginSubmit = document.createElement("button");
     loginSubmit.setAttribute("id", "createSubmit");
-    loginSubmit.setAttribute("class","submit-button");
+    loginSubmit.setAttribute("class","button submit-button");
     loginSubmit.setAttribute("onclick", "createUser()");
     loginSubmit.innerHTML = "Create Account";
 
     var createUser = document.createElement("button");
-    createUser.setAttribute("class","submit-button");
+    createUser.setAttribute("class","button submit-button");
     createUser.setAttribute("id","createToLoginButton")
     createUser.setAttribute("onclick", "showLoginContent()");
     createUser.innerHTML = "Go Back"
+
+    
 
     var lineBreak = document.createElement("br");
     lineBreak.setAttribute("id", "loginLinebreak")
 
     var inputDiv = document.getElementById("login");
+    inputDiv.appendChild(errorDiv)
+    inputDiv.appendChild(lineBreak)
     inputDiv.appendChild(usernameInput);
     inputDiv.appendChild(lineBreak);
     inputDiv.appendChild(passwordInput);
@@ -125,7 +149,9 @@ function removeCreateUserContent(){
         document.getElementById("createToLoginButton").remove();
     if(document.getElementById("loginLinebreak")!=null)
         document.getElementById("loginLinebreak").remove();
-    document.getElementById("login-error").textContent=""
+    if(document.getElementById("login-error")!=null)
+        document.getElementById("login-error").remove()
+    //document.getElementById("login-error").textContent=""
 }
 
 function showTabBar(){
@@ -133,26 +159,32 @@ function showTabBar(){
     login_parent_container.style.display = "none";
     var main_page = document.getElementById("main-page");
     main_page.style.display = "flex"
-
-    var showOwnedButton = document.createElement("button");
-    showOwnedButton.setAttribute("class","tab-button");
-    showOwnedButton.setAttribute("onclick","showOwned()");
-    showOwnedButton.innerHTML = "Owned Stocks"
-    
-    var showBuyButton = document.createElement("button");
-    showBuyButton.setAttribute("class","tab-button");
-    showBuyButton.setAttribute("onclick","showBuy()");
-    showBuyButton.innerHTML = "Buy Stocks"
-
-    var showOverviewButton = document.createElement("button");
-    showOverviewButton.setAttribute("class","tab-button");
-    showOverviewButton.setAttribute("onclick","showOverview()");
-    showOverviewButton.innerHTML = "Overview"
-
     var tabBar = document.getElementById("tab-bar");
-    tabBar.appendChild(showOwnedButton);
-    tabBar.appendChild(showBuyButton);
-    tabBar.appendChild(showOverviewButton);
+
+    if(document.getElementById("showOwnedButton")==null){
+        var showOwnedButton = document.createElement("button");
+        showOwnedButton.setAttribute("class","button tab-button");
+        showOwnedButton.setAttribute("id","showOwnedButton")
+        showOwnedButton.setAttribute("onclick","showOwned()");
+        showOwnedButton.innerHTML = "Owned Stocks"
+        tabBar.appendChild(showOwnedButton);
+    }
+    if(document.getElementById("showBuyButton")==null){
+        var showBuyButton = document.createElement("button");
+        showBuyButton.setAttribute("class","button tab-button");
+        showBuyButton.setAttribute("id","showBuyButton")
+        showBuyButton.setAttribute("onclick","showBuy()");
+        showBuyButton.innerHTML = "Buy Stocks"
+        tabBar.appendChild(showBuyButton);
+    }
+    if(document.getElementById("showOverviewButton")==null){
+        var showOverviewButton = document.createElement("button");
+        showOverviewButton.setAttribute("class","button tab-button");
+        showOverviewButton.setAttribute("is","showOverviewButton")
+        showOverviewButton.setAttribute("onclick","showOverview()");
+        showOverviewButton.innerHTML = "Overview"
+        tabBar.appendChild(showOverviewButton);
+    }
 }
 
 function removeTabBar(){
@@ -160,6 +192,7 @@ function removeTabBar(){
     for (var i = 0; i < elements.length; i++) {
         // Do something with each element
         elements[i].remove();
+        //console.log(elements[i].id)
     }
 }
 
@@ -172,6 +205,120 @@ function showLoggedInContent(){
 
     var toolBarDiv = document.getElementById("toolBar")
     toolBarDiv.appendChild(logout)
+
+    showOwned()
+}
+
+function showOwned(){
+    if(state==BUY)
+        removeStockSearch()
+    state = OWNED
+
+    removeError()
+    document.getElementById('main-content').innerHTML = "";
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', '/api/ownedStocks', true);
+    xhr.onload = function() {
+        if (this.status === 200) {
+            var output="";
+            // console.log(getAsciiCodes(this.responseText.trim()), getAsciiCodes("{}"), this.responseText.trim()==="{}")
+            if (this.responseText == '"{}"'){
+                output='<p>No owned stocks. Try buying some!</p>';
+            }else{
+                var stocks = JSON.parse(this.responseText);
+                for(var stock in stocks){ 
+                    output += `<tr>
+                                    <td>`+stocks[stock]["ticker"]+`</td>
+                                    <td>`+stocks[stock]["name"]+`</td>
+                                    <td> Quantity `+stocks[stock]["quantity"]+`</td>
+                                    <td> Current Price `+stocks[stock]["price"]+`</td>
+                                    <td><input></input></td>
+                                </tr>
+                                `;
+                }
+            }
+            document.getElementById('main-content').innerHTML = output;
+        } else {
+            document.getElementById('error').textContent = 'Error fetching data.';
+        }
+    };
+    xhr.onerror = () => document.getElementById('error').textContent = 'Request failed';
+    xhr.send();
+};
+
+function showBuy(){
+    state = BUY
+    removeError()
+    document.getElementById('main-content').innerHTML = "";
+    var header = document.createElement("h2")
+    header.setAttribute("id", "searchHeader")
+    header.innerHTML = "Find Stocks"
+
+    var searchBar = document.createElement("input")
+    searchBar.setAttribute("type","text")
+    searchBar.setAttribute("id","stockSearchInput")
+    searchBar.setAttribute("class", "input-box")
+
+    var searchSubmit = document.createElement("button")
+    searchSubmit.setAttribute("class","button submit-button")
+    searchSubmit.setAttribute("id", "searchSubmit")
+    searchSubmit.setAttribute("onclick", "searchStock()")
+    searchSubmit.innerHTML = "Look up"
+    
+    var searchBarDiv = document.getElementById("stock-search")
+    searchBarDiv.appendChild(header)
+    searchBarDiv.appendChild(searchBar)
+    searchBarDiv.appendChild(searchSubmit)
+};
+
+function removeStockSearch(){
+    document.getElementById("searchHeader").remove()
+    document.getElementById("stockSearchInput").remove()
+    document.getElementById("searchSubmit").remove()
+}
+
+function searchStock(){
+    var input = document.getElementById("stockSearchInput").value
+    if(input!='' && input!=null){
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', '/api/buyStocks', true);
+        xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.onload = function() {
+            if (this.status === 200) {
+                var output="";
+                if (this.responseType=="{}"){
+                    output='<p>No owned stocks. Try buying some!</p>';
+                }else{
+                    var stocks = JSON.parse(this.responseText);
+                    var counter=0
+                    for(var stock in stocks){ 
+
+                        output += `<tr>
+                                        <td>`+stocks[stock]["ticker"]+`</td>
+                                        <td>`+stocks[stock]["name"]+`</td>
+                                        <td> Quantity `+stocks[stock]["quantity"]+`</td>
+                                        <td> Current Price `+stocks[stock]["price"]+`</td>
+                                        <td><input></input></td>
+                                    </tr>
+                                    `;
+                    }
+                }
+                document.getElementById('main-content').innerHTML = output;
+            } else {
+                document.getElementById('error').textContent = 'Error fetching data.';
+            }
+        };
+        xhr.onerror = () => document.getElementById('error').textContent = 'Request failed';
+        var data = { 'input': input};
+        var jsonData = JSON.stringify(data);
+        xhr.send(jsonData);
+    }
+}
+
+function showOverview(){
+    if(state==BUY)
+        removeStockSearch()
+    state = OVERVIEW
 }
 
 function removeLoggedInContent(){
@@ -244,6 +391,9 @@ function logout(){
             var login_parent_container = document.getElementById("login-parent-container");
             login_parent_container.style.display = "flex";
             showLoginContent();
+            if(state == BUY)
+                removeStockSearch()
+            state = LOGIN
         } else {
             document.getElementById('error').textContent = 'Error logging out.';
         }
@@ -260,7 +410,7 @@ function removeError(){
 function changeColour(){
     var newColour = document.getElementById("cValue").value;
     document.body.style.color = newColour;
-    var elements = document.getElementsByClassName("submit-button");
+    var elements = document.getElementsByClassName("button");
     // Loop through the collection
     for (var i = 0; i < elements.length; i++) {
       // Do something with each element

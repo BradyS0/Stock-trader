@@ -1,5 +1,6 @@
 body {
-    font-family:'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif
+    font-family:'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+    width: 100%;
 }
 
 #toolBar {
@@ -43,18 +44,9 @@ body {
     margin-top: 10px;
     /* border: none; */
     border-radius: 5px;
+    border-color: #000000;
+    border-width: 1px;
     font-size: 14px;
-}
-.submit-button {
-    width: 90%;
-    padding: 10px;
-    margin-top: 10px;
-    border: none;
-    border-radius: 5px;
-    background-color: #2c2c2c; /*Darker blue for the button*/
-    color: #fff; /* White text color */
-    font-size: 16px;
-    cursor: pointer;
 }
 
 #tab-bar {
@@ -63,10 +55,35 @@ body {
     
 }
 
-.tab-button {
-    width: 33%;
-    height: 40px;
-    background-color: #2c2c2c
-    color #fff;
+.button {
+    background-color: #2c2c2c; /*Darker blue for the button*/
+    color: #fff; /* White text color */
+}
+
+.submit-button {
+    width: 90%;
+    padding: 10px;
+    margin-top: 10px;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
     cursor: pointer;
+}
+
+.tab-button {
+    width: 33.33%;
+    height: 40px;
+    cursor: pointer;
+    border-style:solid;
+    border-color: #fff;
+}
+
+#main-page {
+    align-items: center;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.stock-search {
+    text-align: center;
 }
