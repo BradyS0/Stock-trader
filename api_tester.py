@@ -3,7 +3,7 @@ import sqlite3
 api_key = '0e69e8d307994dbb91e844a7c5dd7b9a'
 ticker = 'AAPL'
 # url = f'https://api.twelvedata.com/price?symbol={ticker}&apikey={api_key}'
-url = 'https://api.twelvedata.com/stocks'
+url = f'https://api.twelvedata.com/price?symbol={}'
 response = requests.get(url).json() 
 # print(response)
 

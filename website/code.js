@@ -287,7 +287,7 @@ function searchStock(){
             if (this.status === 200) {
                 var output="";
                 if (this.responseType=="{}"){
-                    output='<p>No owned stocks. Try buying some!</p>';
+                    output="<p>Can't find any stocks matching your search</p>";
                 }else{
                     var stocks = JSON.parse(this.responseText);
                     var counter=0
@@ -296,7 +296,6 @@ function searchStock(){
                         output += `<tr>
                                         <td>`+stocks[stock]["ticker"]+`</td>
                                         <td>`+stocks[stock]["name"]+`</td>
-                                        <td> Quantity `+stocks[stock]["quantity"]+`</td>
                                         <td> Current Price `+stocks[stock]["price"]+`</td>
                                         <td><input></input></td>
                                     </tr>

@@ -149,7 +149,7 @@ def make_api_response(request_headers, request_body, client_connection):
             print("something")
         if request_body == "GET" and request_path == "/api/buyStocks":
             response_header = "HTTP/1.1 200 "+response_codes[200]+"\r\n\r\n"
-            response_body = json.dumps(db.search_stocks(data["input"]))
+            response_body = db.search_stocks(data["input"])
         # if request_type == "POST" and request_path=="/api/tweet":
         #     newKey = str(uuid.uuid4().hex)
         #     while newKey[0].isdigit():

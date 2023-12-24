@@ -104,17 +104,18 @@ def set_stock_price(stockID, ticker,today):
     updateDatabase("INSERT INTO Prices (date, stockID, price) VALUES (?,?,?)", (today,stockID,price))
     return price
 
-def search_stocks():
+def search_stocks(input):
     query = """SELECT stockID, ticker, name, price
     FROM Stock
     NATURAL JOIN StockPrice
-    WHERE username = ?
+    WHERE ticker LIKE %?% or name LIKE %?%
+    LIMIT 5
     """
-    rows = queryDatabase(query, )
+    rows = queryDatabase(query, (input,input))
     for row in rows:
-        if row[4]==None:
+        if row[3]==None:
             price = set_stock_price(row[0], row[1])
-            row[4] = price
+            row[3] = price
     json_string = "{"
     for i in rows:
         json_string=json_string+rows[i][1]+":{"
