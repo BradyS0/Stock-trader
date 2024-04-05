@@ -1,11 +1,19 @@
+import json
 import requests 
 import sqlite3
-api_key = '0e69e8d307994dbb91e844a7c5dd7b9a'
+
 ticker = 'AAPL'
 # url = f'https://api.twelvedata.com/price?symbol={ticker}&apikey={api_key}'
-url = f'https://api.twelvedata.com/price?symbol={}'
+url = f'https://api.twelvedata.com/stocks'#price?symbol={}'
 response = requests.get(url).json() 
 # print(response)
+
+def getAPIKey():
+    with open("config.json", r) as f:
+        config = json.loads(f)
+    return config
+
+api_key = getAPIKey()["api_key"]
 
 conn = sqlite3.connect('stock_website.db')
 cursor = conn.cursor()
@@ -14,7 +22,7 @@ for i in range(len(response['data'])):
     try:
         print(i)
         
-        print("|",response['data'][i]['symbol'],"|",response['data'][i]['name'],"|",response['data'][i]['currency'],"|",response['data'][i]['country'],"|",response['data'][i]['type'])
+        print("|",response['data'][i]['symbol'],"|",response['data'][i]['name'],"|",response['data'][i]['currency'],"|",response['data'][i]['country'],"|",response['data'][i]['type'], response['data'][i]['exchange'])
         cursor.execute(f'INSERT INTO Stock (ticker,name,currency,country,type) VALUES (?,?,?,?,?)',(response['data'][i]['symbol'],response['data'][i]['name'],response['data'][i]['currency'],response['data'][i]['country'],response['data'][i]['type']))
         conn.commit()
         

@@ -26,6 +26,8 @@ def updateDatabase(update, values):
     conn = sqlite3.connect('stock_website.db')
     cursor = conn.cursor()
     try:
+        print(update)
+        print(values)
         cursor.execute(update,values)
         conn.commit()
         print("data commited")
@@ -37,6 +39,7 @@ def updateDatabase(update, values):
     finally:
         cursor.close()
         conn.close()
+        print("Database connection closed")
         return worked
 
 def check_password(username,password):
@@ -78,57 +81,52 @@ def get_owned_stocks(username):
     current_date = datetime.now().strftime("%Y-%m-%d")
     today = datetime.strptime(current_date, "%Y-%m-%d")
     rows = queryDatabase(query,(username,))
-    for row in rows:
-        if row[4]!=today:
-            price = set_stock_price(row[0], row[1], today)
-            row[4] = price
-    json_string = "{"
-    for i in rows:
-        json_string=json_string+rows[i][1]+":{"
-        json_string=json_string+"stockID:"+rows[i][0]+","
-        json_string=json_string+f"ticker:{rows[i][1]},"
-        json_string=json_string+f"name:{rows[i][2]},"
-        json_string=json_string+f"quantity:{rows[i][3]},"
-        json_string=json_string+f"price:{rows[i][4]}"
-        json_string=json_string+"}"
-        if i!=len(rows):
-            json_string=json_string+","
-    json_string=json_string+"}"
-    print(json_string)
-    return json.dumps(json_string)
+    for i in range(len(rows)):
+        rows[i]=list(rows[i])
+        if rows[i][4]!=today:
+            price = set_stock_price(rows[i][0], rows[i][1], today)
+            rows[i][4] = price
+    jsonData = {}
+    i=0
+    while i<len(rows):
+        jsonData[rows[i][0]]={"stockID":rows[i][0],"ticker":str(rows[i][1]),"name":str(rows[i][2]),"quantity":rows[i][3],"price":rows[i][4]}
+        i+=1
+    print(jsonData)
+    return json.dumps(jsonData)
 
 def set_stock_price(stockID, ticker,today):
     endpoint = f'price?symbol={ticker}&apikey={api_key}'
-    price = make_api_request(endpoint)
-    updateDatabase("UPDATE Stocks SET lastModified ")
+    price = make_api_request(endpoint)["price"]
+    updateDatabase("UPDATE Stock SET lastModified = ? WHERE stockID = ?", (today,stockID))
     updateDatabase("INSERT INTO Prices (date, stockID, price) VALUES (?,?,?)", (today,stockID,price))
     return price
 
 def search_stocks(input):
-    query = """SELECT stockID, ticker, name, price
+    print("in search")
+    query = """SELECT Stock.stockID, ticker, name, price, lastModified
     FROM Stock
-    NATURAL JOIN StockPrice
-    WHERE ticker LIKE %?% or name LIKE %?%
-    LIMIT 5
+    LEFT JOIN Prices
+    WHERE (ticker LIKE ? or name LIKE ?) and (currency = "USD" or currency = "CAD")
+    LIMIT 5;
     """
-    rows = queryDatabase(query, (input,input))
-    for row in rows:
-        if row[3]==None:
-            price = set_stock_price(row[0], row[1])
-            row[3] = price
-    json_string = "{"
-    for i in rows:
-        json_string=json_string+rows[i][1]+":{"
-        json_string=json_string+"stockID:"+rows[i][0]+","
-        json_string=json_string+f"ticker:{rows[i][1]},"
-        json_string=json_string+f"name:{rows[i][2]},"
-        json_string=json_string+f"price:{rows[i][3]}"
-        json_string=json_string+"}"
-        if i!=len(rows):
-            json_string=json_string+","
-    json_string=json_string+"}"
-    print(json_string)
-    return json.dumps(json_string)
+    rows = queryDatabase(query, (f'%{input}%',f"%{input}%"))
+    print(rows)
+    current_date = datetime.now().strftime("%Y-%m-%d")
+    today = datetime.strptime(current_date, "%Y-%m-%d")
+    for i in range(len(rows)):
+        rows[i]=list(rows[i])
+        if rows[i][3]==None or rows[i][4]!=today:
+            price = set_stock_price(rows[i][0], rows[i][1], today)
+            rows[i][3] = price
+    jsonData = {}
+    i=0
+    while i<len(rows):
+        jsonData[rows[i][0]]={"stockID":rows[i][0],"ticker":str(rows[i][1]),"name":str(rows[i][2]),"price":rows[i][3]}
+        i+=1
+
+    print("json string")
+    print(jsonData)
+    return json.dumps(jsonData)
 
 def queryDatabase(query, values):
     conn = sqlite3.connect('stock_website.db')
@@ -150,6 +148,6 @@ def queryDatabase(query, values):
         return rows
     
 def make_api_request(api_path):
-    url="https://api.twelvedata.com"+api_path
+    url="https://api.twelvedata.com/"+api_path
     response = requests.get(url).json() 
     return response

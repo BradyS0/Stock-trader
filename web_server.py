@@ -147,9 +147,11 @@ def make_api_response(request_headers, request_body, client_connection):
             response_header = "HTTP/1.1 200 "+response_codes[200]+"\r\n\r\n"
             response_body = db.get_owned_stocks(username)
             print("something")
-        if request_body == "GET" and request_path == "/api/buyStocks":
+        if request_type == "POST" and request_path == "/api/buyStocks":
             response_header = "HTTP/1.1 200 "+response_codes[200]+"\r\n\r\n"
+            print("about to do search")
             response_body = db.search_stocks(data["input"])
+            # response_body = json.dumps({12:{"stockID":12,"ticker":"APPL","name":"Apple Inc","price":180},14:{"stockID":12,"ticker":"APPL2","name":"Apple2 Inc","price":18},18:{"stockID":18,"ticker":"APPL","name":"Apple4 Inc","price":1.8}})
         # if request_type == "POST" and request_path=="/api/tweet":
         #     newKey = str(uuid.uuid4().hex)
         #     while newKey[0].isdigit():

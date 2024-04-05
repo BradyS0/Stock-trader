@@ -87,3 +87,7 @@ body {
 .stock-search {
     text-align: center;
 }
+
+tr {
+    display: inline; /* This would prevent line breaks between rows */
+}

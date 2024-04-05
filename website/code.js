@@ -209,6 +209,12 @@ function showLoggedInContent(){
     showOwned()
 }
 
+function removeLoggedInContent(){
+    removeTabBar()
+    document.getElementById("logoutSubmit").remove()
+    document.getElementById('main-content').innerHTML = "";
+}
+
 function showOwned(){
     if(state==BUY)
         removeStockSearch()
@@ -221,8 +227,8 @@ function showOwned(){
     xhr.onload = function() {
         if (this.status === 200) {
             var output="";
-            // console.log(getAsciiCodes(this.responseText.trim()), getAsciiCodes("{}"), this.responseText.trim()==="{}")
-            if (this.responseText == '"{}"'){
+            console.log(this.responseText)
+            if (this.responseText == '{}'){
                 output='<p>No owned stocks. Try buying some!</p>';
             }else{
                 var stocks = JSON.parse(this.responseText);
@@ -279,25 +285,28 @@ function removeStockSearch(){
 
 function searchStock(){
     var input = document.getElementById("stockSearchInput").value
+    console.log(input)
     if(input!='' && input!=null){
         var xhr = new XMLHttpRequest();
-        xhr.open('GET', '/api/buyStocks', true);
+        xhr.open('POST', '/api/buyStocks', true);
         xhr.setRequestHeader("Content-Type", "application/json");
         xhr.onload = function() {
             if (this.status === 200) {
                 var output="";
-                if (this.responseType=="{}"){
+                console.log(this.responseText)
+                if (this.responseText=='"{}"'){
                     output="<p>Can't find any stocks matching your search</p>";
                 }else{
                     var stocks = JSON.parse(this.responseText);
                     var counter=0
                     for(var stock in stocks){ 
 
-                        output += `<tr>
+                        output +=   `<tr>
                                         <td>`+stocks[stock]["ticker"]+`</td>
                                         <td>`+stocks[stock]["name"]+`</td>
                                         <td> Current Price `+stocks[stock]["price"]+`</td>
-                                        <td><input></input></td>
+                                        <td><input id=`+stocks[stock]["stockID"]+`></input></td>
+                                        <br>
                                     </tr>
                                     `;
                     }
@@ -318,11 +327,6 @@ function showOverview(){
     if(state==BUY)
         removeStockSearch()
     state = OVERVIEW
-}
-
-function removeLoggedInContent(){
-    removeTabBar()
-    document.getElementById("logoutSubmit").remove()
 }
 
 function createUser(){
