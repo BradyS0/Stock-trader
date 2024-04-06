@@ -10,3 +10,10 @@ JavaScript code.js - holds a funtions that make the website interactive/dynamic,
 
 ## How it works
 At first you will need to create an account. My web server will use sha256 to hash your password with a salt to randomize each users hash. Both the salt and the hash is stored and used to check when logging in. You will then log in, where you can buy stocks. Now since im using a free api, I can only get 8 api stock price requests per minute. 
+
+To run the program, run:
+python web_server.py 
+
+and it will run on port 8999 
+
+it can be accessed by going to localport:8999 in a web browser

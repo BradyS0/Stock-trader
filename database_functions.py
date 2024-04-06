@@ -5,7 +5,13 @@ import requests
 from datetime import datetime
 import json
 
-api_key = '0e69e8d307994dbb91e844a7c5dd7b9a'
+def getAPIKey():
+    with open("config.json", "r") as f:
+        config = json.load(f)
+    return config
+
+api_key = getAPIKey()["api_key"]
+
 ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 def add_user(username, password):
@@ -78,8 +84,7 @@ def get_owned_stocks(username):
     NATURAL JOIN Stock
     WHERE username = ?
     """
-    current_date = datetime.now().strftime("%Y-%m-%d")
-    today = datetime.strptime(current_date, "%Y-%m-%d")
+    today = get_current_date()
     rows = queryDatabase(query,(username,))
     for i in range(len(rows)):
         rows[i]=list(rows[i])
@@ -91,7 +96,7 @@ def get_owned_stocks(username):
     while i<len(rows):
         jsonData[rows[i][0]]={"stockID":rows[i][0],"ticker":str(rows[i][1]),"name":str(rows[i][2]),"quantity":rows[i][3],"price":rows[i][4]}
         i+=1
-    print(jsonData)
+    print("final Json data",jsonData)
     return json.dumps(jsonData)
 
 def set_stock_price(stockID, ticker,today):
@@ -103,25 +108,34 @@ def set_stock_price(stockID, ticker,today):
 
 def search_stocks(input):
     print("in search")
-    query = """SELECT Stock.stockID, ticker, name, price, lastModified
+    query = """SELECT Stock.stockID, ticker, name, lastModified
     FROM Stock
-    LEFT JOIN Prices
-    WHERE (ticker LIKE ? or name LIKE ?) and (currency = "USD" or currency = "CAD")
+    WHERE (ticker LIKE ? or name LIKE ?) and (country = "United States")
     LIMIT 5;
+    """
+    q = """
+    SELECT Stock.stockID, ticker, name, price, lastModified
+    FROM Stock
+    WHERE (ticker LIKE "a" or name LIKE "a") and (country = "United States" or country = "Canada")
+    LIMIT 5;
+    
     """
     rows = queryDatabase(query, (f'%{input}%',f"%{input}%"))
     print(rows)
-    current_date = datetime.now().strftime("%Y-%m-%d")
-    today = datetime.strptime(current_date, "%Y-%m-%d")
+    today = get_current_date()
     for i in range(len(rows)):
         rows[i]=list(rows[i])
-        if rows[i][3]==None or rows[i][4]!=today:
+
+        if rows[i][3]!=str(today):
             price = set_stock_price(rows[i][0], rows[i][1], today)
-            rows[i][3] = price
+        else:
+            row = queryDatabase("SELECT price FROM Prices WHERE stockID = ? and date = ?;", (rows[i][0], today))
+            print("pricw row", row)
+            price = row[0][0]
     jsonData = {}
     i=0
     while i<len(rows):
-        jsonData[rows[i][0]]={"stockID":rows[i][0],"ticker":str(rows[i][1]),"name":str(rows[i][2]),"price":rows[i][3]}
+        jsonData[rows[i][0]] = {"stockID":rows[i][0],"ticker":str(rows[i][1]),"name":str(rows[i][2]),"price":price}
         i+=1
 
     print("json string")
@@ -151,3 +165,11 @@ def make_api_request(api_path):
     url="https://api.twelvedata.com/"+api_path
     response = requests.get(url).json() 
     return response
+
+def get_stock_price(query, stockID):
+    row = queryDatabase()
+
+def get_current_date():
+    current_date = datetime.now().strftime("%Y-%m-%d")
+    today = datetime.strptime(current_date, "%Y-%m-%d")
+    return today
