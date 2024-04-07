@@ -91,3 +91,11 @@ body {
 tr {
     display: inline; /* This would prevent line breaks between rows */
 }
+
+table {
+    border-collapse: separate;
+    border-spacing: 10px; /* Adjust as needed */
+}
+td {
+    padding: 10px; /* Adjust as needed */
+}

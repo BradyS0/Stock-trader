@@ -147,35 +147,14 @@ def make_api_response(request_headers, request_body, client_connection):
             response_header = "HTTP/1.1 200 "+response_codes[200]+"\r\n\r\n"
             response_body = db.get_owned_stocks(username)
             print("something")
-        if request_type == "POST" and request_path == "/api/buyStocks":
+        if request_type == "POST" and request_path == "/api/searchStocks":
             response_header = "HTTP/1.1 200 "+response_codes[200]+"\r\n\r\n"
             print("about to do search")
             response_body = db.search_stocks(data["input"])
-            # response_body = json.dumps({12:{"stockID":12,"ticker":"APPL","name":"Apple Inc","price":180},14:{"stockID":12,"ticker":"APPL2","name":"Apple2 Inc","price":18},18:{"stockID":18,"ticker":"APPL","name":"Apple4 Inc","price":1.8}})
-        # if request_type == "POST" and request_path=="/api/tweet":
-        #     newKey = str(uuid.uuid4().hex)
-        #     while newKey[0].isdigit():
-        #         newKey = str(uuid.uuid4().hex)
-        #     response_header, response_body = post(newKey, username, "SET", data)
-        #     print(response_header)
-
-        # elif len(request_path.split("/")) == 4 and request_type == "PUT":
-        #     print("changeing")
-        #     response_header, response_body = post(data["key"], username, "SET", data)
-        # elif len(request_path.split("/")) == 4 and request_type == "DELETE":
-        #     response_header, response_body = post(request_path.split("/")[3], username, "DELETE", "")
-        # elif request_type == "GET" and request_path == "/api/tweet":
-        #     get_tweets_request={"type":"GET-DB"}
-        #     response_body = json.loads(talkToDatabase(json.dumps(get_tweets_request)))
-        #     if response_body["success"] == True:
-        #         response_header = "HTTP/1.1 200 "+response_codes[200]+"\r\n\r\n"
-        #         print(response_body)
-        #         response_body = json.dumps(response_body["data"])
-        #     else:
-        #         response_header = "HTTP/1.1 503 "+response_codes[503]+"\r\n\r\n"
-        #         response_body=""
-        #     print("get posts response: ",response_body)
-
+        if request_type == "POST" and request_path == "buyStock":
+            response_header = "HTTP/1.1 200"+response_codes[200]+"\r\n\r\n"
+            response_body = db.buy_stock(data["stockID"])
+        
     return response_header, response_body
 
 def make_http_reponse(request_headers):

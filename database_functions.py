@@ -121,7 +121,7 @@ def search_stocks(input):
     
     """
     rows = queryDatabase(query, (f'%{input}%',f"%{input}%"))
-    print(rows)
+    print("printing rows", rows)
     today = get_current_date()
     for i in range(len(rows)):
         rows[i]=list(rows[i])
@@ -173,3 +173,6 @@ def get_current_date():
     current_date = datetime.now().strftime("%Y-%m-%d")
     today = datetime.strptime(current_date, "%Y-%m-%d")
     return today
+
+def buy_stock():
+    print("buying stock")

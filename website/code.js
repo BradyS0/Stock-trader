@@ -3,9 +3,9 @@ var OWNED = "owned"
 var BUY = "buy"
 var OVERVIEW = "overview"
 var state = LOGIN
-var searched_list = []
 var stocksShown=0
 var showAtATime =5
+var stock_list = null
 
 function setup(){
 
@@ -244,6 +244,7 @@ function showOwned(){
                 }
             }
             document.getElementById('main-content').innerHTML = output;
+            stock_list = stocks
         } else {
             document.getElementById('error').textContent = 'Error fetching data.';
         }
@@ -288,7 +289,7 @@ function searchStock(){
     console.log(input)
     if(input!='' && input!=null){
         var xhr = new XMLHttpRequest();
-        xhr.open('POST', '/api/buyStocks', true);
+        xhr.open('POST', '/api/searchStocks', true);
         xhr.setRequestHeader("Content-Type", "application/json");
         xhr.onload = function() {
             if (this.status === 200) {
@@ -299,19 +300,24 @@ function searchStock(){
                 }else{
                     var stocks = JSON.parse(this.responseText);
                     var counter=0
-                    for(var stock in stocks){ 
-
+                    output = "<table>"
+                    for (var stock in stocks) {
                         output +=   `<tr>
-                                        <td>`+stocks[stock]["ticker"]+`</td>
-                                        <td>`+stocks[stock]["name"]+`</td>
-                                        <td> Current Price `+stocks[stock]["price"]+`</td>
-                                        <td><input id=`+stocks[stock]["stockID"]+`></input></td>
-                                        <br>
-                                    </tr>
-                                    `;
+                                        <td>${stocks[stock]["ticker"]}</td>
+                                        <td>${stocks[stock]["name"]}</td>
+                                        <td>Current Price ${stocks[stock]["price"]}</td>
+                                        <td><input type="number" id="${stocks[stock]["stockID"]}" class="dynamicInputBox"></td>
+                                        <td id="${stocks[stock]["stockID"]}total">Total: $0</td>
+                                        <td><button onclick="buyStock('${stocks[stock]["stockID"]}')">Buy</button></td>
+                                    </tr>`;
                     }
+                    output += "</table>"; // End the table
                 }
                 document.getElementById('main-content').innerHTML = output;
+
+                stock_list = stocks
+                console.log(stocks)
+                addListenersToInputBoxes()
             } else {
                 document.getElementById('error').textContent = 'Error fetching data.';
             }
@@ -419,4 +425,39 @@ function changeColour(){
       // Do something with each element
       elements[i].style.backgroundColor = newColour;
     }
+}
+
+function buyStock(stockID){
+    var input = document.getElementById(stockID).value
+    console.log(input)
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', '/api/buyStock', true);
+    xhr.onload = function(){
+        if (xhr.status === 200) {
+            // Request was successful, and you can access the response data in xhr.responseText
+            
+        } else {
+            document.getElementById('error').textContent = 'Error buying stock.';
+        }
+    }
+    xhr.onerror = () => document.getElementById('error').textContent = 'Request failed';
+    var data = { 'input': input};
+    var jsonData = JSON.stringify(data);
+    xhr.send(jsonData);
+}
+
+function addListenersToInputBoxes() {
+    const inputBoxes = document.querySelectorAll('.dynamicInputBox');
+
+    inputBoxes.forEach(function(inputBox) {
+        inputBox.addEventListener('input', function(event) {
+            const outputID = inputBox.id+"total"
+            const outputEntry = document.getElementById(outputID)
+            const inputValue = parseFloat(inputBox.value)
+            const price = parseFloat(stock_list[inputBox.id]["price"])
+            console.log(price)
+            console.log(inputValue)
+            outputEntry.innerHTML = "Total: $"+(inputValue*price).toFixed(2)
+        });
+    });
 }
