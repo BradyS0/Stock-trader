@@ -3,9 +3,10 @@ var OWNED = "owned"
 var BUY = "buy"
 var OVERVIEW = "overview"
 var state = LOGIN
-var stocksShown=0
-var showAtATime =5
+var stocksShown= 0
+var showAtATime = 5
 var stock_list = null
+var currentUser = null;
 
 function setup(){
 
@@ -188,12 +189,13 @@ function showTabBar(){
 }
 
 function removeTabBar(){
-    var elements = document.getElementsByClassName("tab-button");
-    for (var i = 0; i < elements.length; i++) {
-        // Do something with each element
-        elements[i].remove();
-        //console.log(elements[i].id)
-    }
+    document.getElementById("tab-bar").innerHTML = "";
+    // var elements = document.getElementsByClassName("tab-button");
+    // for (var i = 0; i < elements.length; i++) {
+    //     // Do something with each element
+    //     elements[i].remove();
+    //     //console.log(elements[i].id)
+    // }
 }
 
 function showLoggedInContent(){
@@ -232,16 +234,21 @@ function showOwned(){
                 output='<p>No owned stocks. Try buying some!</p>';
             }else{
                 var stocks = JSON.parse(this.responseText);
+                output+="<table class=center-table>";
                 for(var stock in stocks){ 
+                    const total = parseFloat(stocks[stock]["quantity"]*stocks[stock]["price"]).toFixed(2);
+                    const price = parseFloat(stocks[stock]["price"]).toFixed(2);
                     output += `<tr>
-                                    <td>`+stocks[stock]["ticker"]+`</td>
-                                    <td>`+stocks[stock]["name"]+`</td>
-                                    <td> Quantity `+stocks[stock]["quantity"]+`</td>
-                                    <td> Current Price `+stocks[stock]["price"]+`</td>
-                                    <td><input></input></td>
-                                </tr>
-                                `;
+                                    <td>            </td>
+                                    <td>${stocks[stock]["ticker"]}</td>
+                                    <td>${stocks[stock]["name"]}</td>
+                                    <td> Quantity: ${stocks[stock]["quantity"]}</td>
+                                    <td> Current Price: $${price}</td>
+                                    <td> Total: $${total}</td>
+                                    <td>            </td>
+                                </tr>`;
                 }
+                output+="</table>";
             }
             document.getElementById('main-content').innerHTML = output;
             stock_list = stocks
@@ -254,9 +261,12 @@ function showOwned(){
 };
 
 function showBuy(){
+    document.getElementById("main-content").innerHTML=""
+    if(state==BUY)
+        removeStockSearch()
     state = BUY
     removeError()
-    document.getElementById('main-content').innerHTML = "";
+
     var header = document.createElement("h2")
     header.setAttribute("id", "searchHeader")
     header.innerHTML = "Find Stocks"
@@ -300,12 +310,13 @@ function searchStock(){
                 }else{
                     var stocks = JSON.parse(this.responseText);
                     var counter=0
-                    output = "<table>"
+                    output = "<table class=center-table>"
                     for (var stock in stocks) {
+                        const price = parseFloat(stocks[stock]["price"]).toFixed(2)
                         output +=   `<tr>
                                         <td>${stocks[stock]["ticker"]}</td>
                                         <td>${stocks[stock]["name"]}</td>
-                                        <td>Current Price ${stocks[stock]["price"]}</td>
+                                        <td>Current Price: $${price}</td>
                                         <td><input type="number" id="${stocks[stock]["stockID"]}" class="dynamicInputBox"></td>
                                         <td id="${stocks[stock]["stockID"]}total">Total: $0</td>
                                         <td><button onclick="buyStock('${stocks[stock]["stockID"]}')">Buy</button></td>
@@ -331,8 +342,22 @@ function searchStock(){
 
 function showOverview(){
     if(state==BUY)
-        removeStockSearch()
+        removeStockSearch();
     state = OVERVIEW
+    removeError();
+
+    var mainContentDiv = document.getElementById("main-content");
+    mainContentDiv.innerHTML="";
+
+    var cash = document.createElement("p");
+    cash.setAttribute("id", "cash");
+    mainContentDiv.appendChild(cash);
+
+    var moneyInStocks = document.createElement("p");
+    moneyInStocks.setAttribute("id", "moneyInStocks");
+    mainContentDiv.appendChild(moneyInStocks);
+    
+    setBalanceInfo()
 }
 
 function createUser(){
@@ -349,6 +374,7 @@ function createUser(){
                     // Request was successful, and you can access the response data in xhr.responseText
                     removeCreateUserContent();
                     showLoggedInContent();
+                    currentUser = usernameInput;
                 } else if(xhr.status === 409) {
                     document.getElementById('login-error').textContent = 'Username taken';
                 }else{
@@ -377,6 +403,7 @@ function submitLogin(){
                 // Request was successful, and you can access the response data in xhr.responseText
                 removeLoginContent();
                 showLoggedInContent();
+                currentUser = usernameInput;
             }else if(xhr.status === 401 || xhr.status === 404) {
                 document.getElementById('login-error').textContent = 'Wrong username or password';
             }else if(xhr.status === 400) {
@@ -397,9 +424,8 @@ function logout(){
         if (xhr.status === 200) {
             // Request was successful, and you can access the response data in xhr.responseText
             removeLoggedInContent();
-            var login_parent_container = document.getElementById("login-parent-container");
-            login_parent_container.style.display = "flex";
             showLoginContent();
+            currentUser = null;
             if(state == BUY)
                 removeStockSearch()
             state = LOGIN
@@ -422,7 +448,6 @@ function changeColour(){
     var elements = document.getElementsByClassName("button");
     // Loop through the collection
     for (var i = 0; i < elements.length; i++) {
-      // Do something with each element
       elements[i].style.backgroundColor = newColour;
     }
 }
@@ -430,20 +455,26 @@ function changeColour(){
 function buyStock(stockID){
     var input = document.getElementById(stockID).value
     console.log(input)
-    var xhr = new XMLHttpRequest();
-    xhr.open('POST', '/api/buyStock', true);
-    xhr.onload = function(){
-        if (xhr.status === 200) {
-            // Request was successful, and you can access the response data in xhr.responseText
-            
-        } else {
-            document.getElementById('error').textContent = 'Error buying stock.';
+    if(input>0){
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', '/api/buyStock', true);
+        xhr.onload = function(){
+            if (xhr.status === 200) {
+                alert(input+" stocks of "+stock_list[stockID]["name"]+" successfully purchaced!");
+                
+            } else if (xhr.status === 400){
+                document.getElementById("error").textContent = "Insufficient Funds";
+            }else{
+                document.getElementById('error').textContent = 'Error buying stock.';
+            }
         }
+        xhr.onerror = () => document.getElementById('error').textContent = 'Request failed';
+        console.log(currentUser);
+        var data = { 'quantity': input, "stockID":stockID, "price":parseFloat(stock_list[stockID]["price"]).toFixed(2), "username":currentUser};
+        var jsonData = JSON.stringify(data);
+        xhr.send(jsonData);
     }
-    xhr.onerror = () => document.getElementById('error').textContent = 'Request failed';
-    var data = { 'input': input};
-    var jsonData = JSON.stringify(data);
-    xhr.send(jsonData);
+
 }
 
 function addListenersToInputBoxes() {
@@ -454,10 +485,29 @@ function addListenersToInputBoxes() {
             const outputID = inputBox.id+"total"
             const outputEntry = document.getElementById(outputID)
             const inputValue = parseFloat(inputBox.value)
-            const price = parseFloat(stock_list[inputBox.id]["price"])
+            const price = parseFloat(stock_list[inputBox.id]["price"]).toFixed(2)
             console.log(price)
             console.log(inputValue)
             outputEntry.innerHTML = "Total: $"+(inputValue*price).toFixed(2)
         });
     });
+}
+
+function setBalanceInfo(){
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', '/api/overviewInfo', true);
+    xhr.onload = function(){
+        if (xhr.status === 200) {
+            info = JSON.parse(this.responseText);
+            document.getElementById("cash").innerText = "Current available cash: $"+info["cash"]
+            document.getElementById("moneyInStocks").innerText = "Money in stocks: $"+info["moneyInStocks"]
+        } else {
+            document.getElementById('error').textContent = 'Error getting overview info.';
+        }
+    }
+    xhr.onerror = () => document.getElementById('error').textContent = 'Request failed';
+
+    xhr.send();
+
 }

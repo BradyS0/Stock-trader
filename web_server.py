@@ -97,7 +97,7 @@ def make_api_response(request_headers, request_body, client_connection):
     request_type = request_headers[0].split()[0]
     request_path = request_headers[0].split()[1]
     response_body=""
-    print(request_type, request_path)
+    print("request ",request_type, request_path)
     data = None
     response_header=None
     if not(request_path=="/api/login" and request_type == "POST"):
@@ -120,14 +120,14 @@ def make_api_response(request_headers, request_body, client_connection):
         CODE = db.check_password(data['username'],data['password'])
         print(CODE)
         if CODE ==200:
-             response_header = "HTTP/1.1 200 "+response_codes[200]+"\r\nSet-Cookie: session-token="+data["username"]+"; Path=/; Expires=Wed, 09 Nov 2026 10:18:14 GMT\r\n\r\n"
+            response_header = "HTTP/1.1 200 "+response_codes[200]+"\r\nSet-Cookie: session-token="+data["username"]+"; Path=/; Expires=Wed, 09 Nov 2026 10:18:14 GMT\r\n\r\n"
         else:
             response_header = f"HTTP/1.1 {CODE} "+response_codes[CODE]+"\r\n\r\n"
         response_body=''
         print("response header\n",response_header)
     elif request_path=="/api/login" and request_type == "DELETE":
         response_header = "HTTP/1.1 200 "+response_codes[200]+"\r\nSet-Cookie: session-token="+username+"; Path=/; Expires=Wed, 09 Nov 2020 10:18:14 GMT\r\n\r\n"
-        response_body=''
+        response_body={}
 
     elif request_path=="/api/create-user" and request_type == "POST":
         user_check = db.check_user(data['username'])
@@ -146,14 +146,33 @@ def make_api_response(request_headers, request_body, client_connection):
         if request_type == "GET" and request_path == "/api/ownedStocks":
             response_header = "HTTP/1.1 200 "+response_codes[200]+"\r\n\r\n"
             response_body = db.get_owned_stocks(username)
-            print("something")
         if request_type == "POST" and request_path == "/api/searchStocks":
             response_header = "HTTP/1.1 200 "+response_codes[200]+"\r\n\r\n"
             print("about to do search")
             response_body = db.search_stocks(data["input"])
-        if request_type == "POST" and request_path == "buyStock":
-            response_header = "HTTP/1.1 200"+response_codes[200]+"\r\n\r\n"
-            response_body = db.buy_stock(data["stockID"])
+        if request_type == "POST" and request_path == "/api/buyStock":
+            balance = db.get_current_balance(data["username"])
+            price = float(data["price"])
+            quantity = int(data["quantity"])
+            if balance<round((price*quantity),2):
+                response_header = "HTTP/1.1 400 "+response_codes[400]+"\r\n\r\n"
+                response_body = json.dumps({"reason":"insufficient funds"})
+            else:
+                response = db.buy_stock(data["stockID"], data["quantity"], data["price"], data["username"], balance)
+                if response:
+                    response_header = "HTTP/1.1 200 "+response_codes[200]+"\r\n\r\n"
+                else:
+                    response_header = "HTTP/1.1 400 "+response_codes[400]+"\r\n\r\n"
+                
+                response_body = ""
+        if request_type == "GET" and request_path == "/api/overviewInfo":
+            response_header = "HTTP/1.1 200 "+response_codes[200]+"\r\n\r\n"
+            cash = db.get_current_balance(username)
+            print("done getting balance")
+            moneyInStocks = db.get_money_in_stocks(username)
+            print("done getting stockmoney")
+            response_body = json.dumps({"cash":cash,"moneyInStocks":moneyInStocks})
+            print("sent info", cash, moneyInStocks, response_header)
         
     return response_header, response_body
 
@@ -210,7 +229,7 @@ server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 server_socket.bind((HOST, PORT))
 server_socket.listen()
-#PORT = server_socket.getsockname()[1]
+
 print("Listening on port... ",PORT)
 while(True):
     try:

@@ -69,32 +69,36 @@ def check_password(username,password):
             return 401
         
 def check_user(username):
-    results = queryDatabase("SELECT userID FROM Users WHERE username = ?",(username,))
+    results = get_userID_from_username(username)
     if results == None:
         return None
-    elif results == []:
-        return True
-    else:
+    elif results == "":
         return False
+    else:
+        return True
     
 def get_owned_stocks(username):
     query = """SELECT stockID, ticker, name, quantity, lastModified
     FROM Users
     NATURAL JOIN BoughtStock
     NATURAL JOIN Stock
+
     WHERE username = ?
     """
     today = get_current_date()
     rows = queryDatabase(query,(username,))
     for i in range(len(rows)):
         rows[i]=list(rows[i])
-        if rows[i][4]!=today:
+        if rows[i][4] == str(today):
+            price = queryDatabase("SELECT price FROM Prices WHERE stockID = ? and date = ?", (rows[i][0], str(today)))
+            rows[i].append(price)
+        else:
             price = set_stock_price(rows[i][0], rows[i][1], today)
-            rows[i][4] = price
+            rows[i].append(price)
     jsonData = {}
     i=0
     while i<len(rows):
-        jsonData[rows[i][0]]={"stockID":rows[i][0],"ticker":str(rows[i][1]),"name":str(rows[i][2]),"quantity":rows[i][3],"price":rows[i][4]}
+        jsonData[rows[i][0]]={"stockID":rows[i][0],"ticker":str(rows[i][1]),"name":str(rows[i][2]),"quantity":rows[i][3],"price":rows[i][5][0][0]}
         i+=1
     print("final Json data",jsonData)
     return json.dumps(jsonData)
@@ -113,13 +117,6 @@ def search_stocks(input):
     WHERE (ticker LIKE ? or name LIKE ?) and (country = "United States")
     LIMIT 5;
     """
-    q = """
-    SELECT Stock.stockID, ticker, name, price, lastModified
-    FROM Stock
-    WHERE (ticker LIKE "a" or name LIKE "a") and (country = "United States" or country = "Canada")
-    LIMIT 5;
-    
-    """
     rows = queryDatabase(query, (f'%{input}%',f"%{input}%"))
     print("printing rows", rows)
     today = get_current_date()
@@ -130,12 +127,13 @@ def search_stocks(input):
             price = set_stock_price(rows[i][0], rows[i][1], today)
         else:
             row = queryDatabase("SELECT price FROM Prices WHERE stockID = ? and date = ?;", (rows[i][0], today))
-            print("pricw row", row)
+            print("price row", row)
             price = row[0][0]
+        rows[i].append(price)
     jsonData = {}
     i=0
     while i<len(rows):
-        jsonData[rows[i][0]] = {"stockID":rows[i][0],"ticker":str(rows[i][1]),"name":str(rows[i][2]),"price":price}
+        jsonData[rows[i][0]] = {"stockID":rows[i][0],"ticker":str(rows[i][1]),"name":str(rows[i][2]),"price":rows[i][4]}
         i+=1
 
     print("json string")
@@ -151,7 +149,7 @@ def queryDatabase(query, values):
 
         # Process the results
         for row in rows:
-            print(row)
+            print("row from database",row)
     except sqlite3.Error as e:
         print(f"Error executing SELECT query: {e}")
         rows=None
@@ -166,13 +164,53 @@ def make_api_request(api_path):
     response = requests.get(url).json() 
     return response
 
-def get_stock_price(query, stockID):
-    row = queryDatabase()
-
 def get_current_date():
     current_date = datetime.now().strftime("%Y-%m-%d")
     today = datetime.strptime(current_date, "%Y-%m-%d")
     return today
 
-def buy_stock():
+def buy_stock(stockID, quantity, price, username, balance):
     print("buying stock")
+    amount = round(int(quantity)*float(price), 2)
+    newBalance = round(balance-amount,2)
+    
+    userID = get_userID_from_username(username)
+    if userID == None or userID == "":
+        return False
+    else:
+        updateDatabase("UPDATE Users SET money = ? WHERE username = ?", (newBalance,username))
+        updateDatabase("INSERT INTO BalanceHistory (userID, date, cash, moneyInStocks)",(userID, get_current_date(),newBalance,get_money_in_stocks(username)))
+        results = queryDatabase("SELECT quantity FROM BoughtStock WHERE userID = ? and stockID = ?", (userID,stockID))
+        if not(results == None or len(results) == 0):
+            quantity = quantity+results[0][0]
+            updateDatabase("UPDATE BnoughtStock SET quantity = ? WHERE stockID = ? and userID = ?", (quantity, stockID, userID))
+        else:
+            updateDatabase("INSERT INTO BoughtStock (stockID, userID, quantity) VALUES (?,?,?)", (stockID,userID,quantity))
+
+        return True
+
+
+def get_current_balance(username):
+    response = queryDatabase("SELECT money FROM Users WHERE username = ?",(username,))
+    print("response", response, response[0][0], username)
+    return response[0][0]
+
+def get_userID_from_username(username):
+    results = queryDatabase("SELECT userID FROM Users WHERE username = ?",(username,))
+    print("userID", results)
+    if results == None:
+        name = None
+    elif len(results) == 0:
+        name = ""
+    else:
+        name = results[0][0]
+    return name
+
+def get_money_in_stocks(username):
+    total= 0
+    stocks = json.loads(get_owned_stocks(username))
+    print("stocks bought", stocks)
+    for stock in stocks:
+        print(stock, stocks[stock]["price"])
+        total += round(int(stocks[stock]["quantity"])*round(float(stocks[stock]["price"]),2),2)
+    return total
